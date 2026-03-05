@@ -1,0 +1,15 @@
+# Secrets
+.env
+TOOLS.local.md
+
+# Daily memory logs (keep MEMORY.md, ignore daily notes)
+memory/*.md
+memory/heartbeat.log
+memory/email-sensor-state.json
+memory/heartbeat-state.json
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
