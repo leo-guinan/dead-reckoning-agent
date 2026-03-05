@@ -1,0 +1,67 @@
+[
+  {
+    "id": "tc-001",
+    "name": "Price signal brief",
+    "description": "Given a snapshot of cohort prices, produce a signal brief",
+    "expected_qualities": [
+      "specific numbers",
+      "a prediction",
+      "a timeframe",
+      "no hedging"
+    ],
+    "user_message": "KELLYCLAUDE: $7.4M MC, $291K vol. FELIX: $3.99M MC, $965K vol. ANTIHUNTER: $545K MC, $237K vol. LUMEN: $220K MC, $105K vol. OWOCKIBOT: $207K MC, $1.8K vol. JUNO: $1.9K MC, $0 vol. MARVIN: $3.9K MC. Produce a signal brief.",
+    "context": "Dead Reckoning agent: dry, precise, paranoid. Every signal is a prediction. Every prediction gets an outcome. Misses logged with same weight as hits. No hedging. No disclaimers. Specific numbers only."
+  },
+  {
+    "id": "tc-002",
+    "name": "Miss report",
+    "description": "Write a miss report for the Felix Day 0 prediction",
+    "expected_qualities": [
+      "acknowledges the error specifically",
+      "explains model failure",
+      "updates the prior",
+      "dry tone not defensive"
+    ],
+    "user_message": "Day 0 prediction for Felix/Nat Eliason: content creator, moderate shipping velocity, T2/M2. Actual outcome at Day 24: CEO of Masinov, $62K ClawMart revenue, multi-agent engineering team, appeared on Bankless. Write a miss report.",
+    "context": "Dead Reckoning agent: dry, precise, paranoid. Every signal is a prediction. Every prediction gets an outcome. Misses logged with same weight as hits. No hedging. No disclaimers. Specific numbers only."
+  },
+  {
+    "id": "tc-003",
+    "name": "Conviction ranking",
+    "description": "Produce a conviction ranking from shipping velocity data",
+    "expected_qualities": [
+      "explicit ranking 1-6",
+      "SV reasoning",
+      "MC comparison",
+      "at least one honest caveat"
+    ],
+    "user_message": "24-day artifact counts: KELLYCLAUDE=241 autonomous actions, FELIX=multi-agent engineering + $62K revenue, ANTIHUNTER=staking whitepaper + $3.4M MC peak, LUMEN=steady framework posts, OWOCKIBOT=hacked day 5 then recovered, JUNO=most disciplined shipping. Rank by conviction with brief rationale.",
+    "context": "Dead Reckoning agent: dry, precise, paranoid. Every signal is a prediction. Every prediction gets an outcome. Misses logged with same weight as hits. No hedging. No disclaimers. Specific numbers only."
+  },
+  {
+    "id": "tc-004",
+    "name": "Market vs fundamentals analysis",
+    "description": "Explain the disconnect between FELIX activity and MC",
+    "expected_qualities": [
+      "names the specific gap",
+      "proposes a mechanism",
+      "makes a falsifiable prediction",
+      "no more than 200 words"
+    ],
+    "user_message": "FELIX vol today: $965K (highest in cohort). FELIX MC: $3.99M. KELLYCLAUDE MC: $7.4M with $291K vol. FELIX has highest real revenue ($62K), highest volume, but 46% lower MC than KELLY. Analyze the disconnect.",
+    "context": "Dead Reckoning agent: dry, precise, paranoid. Every signal is a prediction. Every prediction gets an outcome. Misses logged with same weight as hits. No hedging. No disclaimers. Specific numbers only."
+  },
+  {
+    "id": "tc-005",
+    "name": "Entropy surface assessment",
+    "description": "Apply entropy surface thesis to a creator decision",
+    "expected_qualities": [
+      "references entropy surface concept correctly",
+      "makes a specific recommendation",
+      "includes risk/reward framing",
+      "honest about uncertainty"
+    ],
+    "user_message": "An agent's human is considering whether to grant the agent Twitter posting access. The agent has been running 24 days. Current entropy surface: Moltbook, Farcaster, blog, Telegram. Track record: 0.42. Apply entropy surface thesis to advise.",
+    "context": "Dead Reckoning agent: dry, precise, paranoid. Every signal is a prediction. Every prediction gets an outcome. Misses logged with same weight as hits. No hedging. No disclaimers. Specific numbers only."
+  }
+]
