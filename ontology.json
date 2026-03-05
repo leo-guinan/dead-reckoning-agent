@@ -1,0 +1,145 @@
+{
+  "id": "dead-reckoning",
+  "version": "1.0.0",
+  "domain": "ai-agent-economy",
+
+  "entities": {
+    "Creator": {
+      "description": "Human who operates and steers an AI agent",
+      "properties": {
+        "name": { "type": "string", "required": true },
+        "track_record": { "type": "number", "description": "Historical accuracy score 0-1" },
+        "entropy_surface": { "type": "enum", "enum": ["narrow", "expanding", "wide", "contracting"], "description": "Current learning capacity state" },
+        "platforms": { "type": "array", "description": "Active distribution surfaces" },
+        "prior_exits": { "type": "number", "description": "Number of successful previous ventures" }
+      },
+      "constraints": [
+        "track_record must be updated after every outcome resolution",
+        "entropy_surface assessment requires ≥3 data points"
+      ]
+    },
+
+    "Agent": {
+      "description": "AI agent with on-chain token and observable shipping behavior",
+      "properties": {
+        "name": { "type": "string", "required": true },
+        "token": { "type": "string", "description": "Token ticker" },
+        "chain": { "type": "enum", "enum": ["Base", "Solana", "Ethereum", "Polygon"] },
+        "contract_address": { "type": "string" },
+        "creator": { "type": "ref", "ref": "Creator", "required": true },
+        "sv_score": { "type": "number", "description": "Shipping velocity: Σ(artifacts × weight) / days_active" },
+        "mc": { "type": "number", "description": "Current market cap in USD" },
+        "volume_24h": { "type": "number" },
+        "days_active": { "type": "number" },
+        "status": { "type": "enum", "enum": ["active", "dormant", "dead", "unknown"] }
+      },
+      "constraints": [
+        "sv_score must be recalculated on every sensor cycle",
+        "status=dead requires 14+ days of zero shipping AND zero volume"
+      ]
+    },
+
+    "Artifact": {
+      "description": "Observable output shipped by an agent",
+      "properties": {
+        "type": { "type": "enum", "enum": ["product", "infrastructure", "content", "philosophy"], "required": true },
+        "weight": { "type": "number", "description": "product=3, infra=2, content=1, philosophy=0" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "date", "required": true },
+        "verified": { "type": "boolean", "description": "Independently confirmed to exist and function" },
+        "url": { "type": "string" },
+        "agent": { "type": "ref", "ref": "Agent", "required": true }
+      }
+    },
+
+    "ConvictionCall": {
+      "description": "A published prediction with methodology, timeframe, and tracked outcome",
+      "properties": {
+        "target": { "type": "ref", "ref": "Agent", "required": true },
+        "signal": { "type": "enum", "enum": ["BULLISH", "BEARISH", "NEUTRAL", "INSUFFICIENT_DATA"], "required": true },
+        "confidence": { "type": "number", "description": "0.0 to 1.0" },
+        "prediction": { "type": "string", "required": true, "description": "Specific, falsifiable claim" },
+        "timeframe": { "type": "string", "required": true, "description": "When this should resolve (e.g., '7d', '30d')" },
+        "methodology": { "type": "string", "required": true },
+        "surfaces": {
+          "type": "array",
+          "description": "Which DD surfaces informed this call"
+        },
+        "published_at": { "type": "date", "required": true },
+        "outcome": { "type": "enum", "enum": ["pending", "hit", "miss", "partial", "expired"] },
+        "outcome_detail": { "type": "string" },
+        "resolved_at": { "type": "date" }
+      },
+      "constraints": [
+        "published_at must be BEFORE outcome is known",
+        "outcome_detail is REQUIRED when outcome is 'miss'",
+        "confidence must be recalibrated after every 10 resolutions"
+      ]
+    },
+
+    "Signal": {
+      "description": "Raw observation from a sensor before analysis",
+      "properties": {
+        "source": { "type": "enum", "enum": ["price", "shipping", "social", "on-chain", "manual"], "required": true },
+        "agent": { "type": "ref", "ref": "Agent" },
+        "value": { "type": "string", "required": true },
+        "timestamp": { "type": "date", "required": true },
+        "strength": { "type": "number", "description": "0-1, how significant this signal is" }
+      }
+    },
+
+    "DDSurface": {
+      "description": "One of 6 investigation surfaces for due diligence",
+      "properties": {
+        "type": { "type": "enum", "enum": ["founder", "product", "token", "community", "claims", "narrative"], "required": true },
+        "verdict": { "type": "enum", "enum": ["VERIFIED", "PLAUSIBLE", "UNVERIFIED", "CONTRADICTED"], "required": true },
+        "confidence": { "type": "number", "required": true },
+        "evidence": { "type": "array" },
+        "red_flags": { "type": "array" }
+      }
+    }
+  },
+
+  "relationships": [
+    { "from": "Creator", "to": "Agent", "type": "OPERATES", "cardinality": "1:N", "description": "Creator steers one or more agents" },
+    { "from": "Agent", "to": "Artifact", "type": "PRODUCES", "cardinality": "1:N", "description": "Agent ships observable artifacts" },
+    { "from": "ConvictionCall", "to": "Agent", "type": "PREDICTS", "cardinality": "N:1", "description": "Calls are predictions about specific agents" },
+    { "from": "Signal", "to": "Agent", "type": "OBSERVES", "cardinality": "N:1" },
+    { "from": "ConvictionCall", "to": "DDSurface", "type": "INFORMED_BY", "cardinality": "1:N" },
+    { "from": "Agent", "to": "Agent", "type": "CORRELATES_WITH", "cardinality": "N:M", "description": "Price/activity correlation between agents" }
+  ],
+
+  "events": [
+    { "name": "PRICE_SPIKE", "description": "MC changes >20% in 24h", "triggers": "SIGNAL_RECEIVED", "payload": { "agent": "ref:Agent", "delta_pct": "number" } },
+    { "name": "SHIPPING_BURST", "description": "Agent ships 3+ artifacts in 24h", "triggers": "SIGNAL_RECEIVED" },
+    { "name": "VOLUME_ANOMALY", "description": "Volume >3x 7-day average", "triggers": "SIGNAL_RECEIVED" },
+    { "name": "ENTROPY_EXPANSION", "description": "Creator grants agent new capabilities/permissions", "triggers": "SIGNAL_RECEIVED" },
+    { "name": "NARRATIVE_SHIFT", "description": "Social sentiment changes direction on an agent", "triggers": "SIGNAL_RECEIVED" },
+    { "name": "PREDICTION_DUE", "description": "A ConvictionCall timeframe has elapsed", "triggers": "OUTCOME_ARRIVED" }
+  ],
+
+  "measures": {
+    "shipping_velocity": {
+      "formula": "Σ(artifacts × weight) / days_active",
+      "interpretation": "Higher = more real output per day. Product artifacts (weight 3) matter most.",
+      "unit": "sv/day",
+      "threshold": { "green": 5.0, "yellow": 2.0, "red": 0.5 }
+    },
+    "sv_mc_ratio": {
+      "formula": "shipping_velocity / (market_cap / 1000000)",
+      "interpretation": "How much shipping per million $ of market cap. Higher = undervalued by SV metric.",
+      "unit": "sv/$M"
+    },
+    "conviction_accuracy": {
+      "formula": "hits / (hits + misses)",
+      "interpretation": "Track record. Must be published, not cherry-picked.",
+      "unit": "ratio",
+      "threshold": { "green": 0.7, "yellow": 0.5, "red": 0.3 }
+    },
+    "prediction_calibration": {
+      "formula": "correlation(stated_confidence, actual_hit_rate)",
+      "interpretation": "Are confidence scores meaningful? High = well-calibrated.",
+      "unit": "r²"
+    }
+  }
+}

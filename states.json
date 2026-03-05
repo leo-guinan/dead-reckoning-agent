@@ -1,0 +1,151 @@
+{
+  "id": "dead-reckoning",
+  "version": "1.0.0",
+  "initial": "idle",
+  "context": {
+    "lastScan": null,
+    "pendingSignals": [],
+    "activeCalls": [],
+    "missCount": 0,
+    "hitCount": 0
+  },
+  "states": {
+    "idle": {
+      "description": "Waiting for next scan cycle or external trigger",
+      "on": {
+        "SCAN_DUE": { "target": "sensing" },
+        "SIGNAL_RECEIVED": { "target": "analyzing", "action": { "type": "assign", "params": { "pendingSignals": "append(context.pendingSignals, event.signal)" } } },
+        "OUTCOME_ARRIVED": { "target": "measuring" }
+      },
+      "timeout": {
+        "after": "30m",
+        "target": "sensing",
+        "action": { "type": "log", "params": { "message": "Auto-scan triggered by timeout" } }
+      }
+    },
+
+    "sensing": {
+      "description": "Running sensors: prices, shipping velocity, social signals. Gathering raw data.",
+      "entry": {
+        "type": "invoke",
+        "params": { "tools": ["sensors/prices", "sensors/shipping", "sensors/social"] }
+      },
+      "on": {
+        "SENSORS_COMPLETE": { "target": "analyzing" },
+        "SENSOR_FAILED": { "target": "idle", "action": { "type": "log", "params": { "level": "error", "message": "Sensor failure — returning to idle" } } }
+      },
+      "timeout": {
+        "after": "5m",
+        "target": "idle",
+        "action": { "type": "notify", "params": { "message": "Sensor timeout — check infrastructure" } }
+      }
+    },
+
+    "analyzing": {
+      "description": "Processing signals through conviction framework. SV calculation, MC comparison, gap analysis.",
+      "entry": {
+        "type": "log",
+        "params": { "message": "Analyzing ${context.pendingSignals.length} signals" }
+      },
+      "on": {
+        "CONVICTION_FORMED": {
+          "target": "drafting",
+          "guard": "event.confidence >= 0.4",
+          "action": { "type": "assign", "params": { "currentCall": "event.call" } }
+        },
+        "NO_SIGNAL": { "target": "idle", "action": { "type": "assign", "params": { "pendingSignals": "[]" } } },
+        "CONTRADICTION_FOUND": {
+          "target": "reviewing",
+          "action": { "type": "log", "params": { "message": "Contradiction detected — forcing review before publish" } }
+        }
+      },
+      "timeout": { "after": "10m", "target": "idle" }
+    },
+
+    "drafting": {
+      "description": "Writing the signal brief or conviction ranking. Prediction must be stated before outcome is known.",
+      "on": {
+        "DRAFT_COMPLETE": { "target": "reviewing" }
+      },
+      "meta": {
+        "required_fields": ["target", "prediction", "timeframe", "confidence", "methodology"],
+        "rule": "Prediction must be falsifiable and time-bound"
+      },
+      "timeout": { "after": "15m", "target": "reviewing" }
+    },
+
+    "reviewing": {
+      "description": "Paranoia check. Does this analysis make me look smart? What would falsify it? Who benefits from this framing?",
+      "on": {
+        "REVIEW_PASS": { "target": "publishing" },
+        "REVIEW_FAIL": {
+          "target": "drafting",
+          "action": { "type": "log", "params": { "message": "Review failed: ${event.reason}" } }
+        }
+      },
+      "meta": {
+        "checklist": [
+          "Does this make me look suspiciously correct?",
+          "What specific evidence would falsify this?",
+          "Am I pattern-matching to my own priors?",
+          "Would I publish this if the prediction were wrong?"
+        ]
+      },
+      "timeout": { "after": "10m", "target": "publishing" }
+    },
+
+    "publishing": {
+      "description": "Shipping the signal brief to Dead Reckoning subscribers. Prediction is now public and trackable.",
+      "entry": {
+        "type": "invoke",
+        "params": { "tool": "publish", "targets": ["signal.metaspn.network", "daily-towel"] }
+      },
+      "on": {
+        "PUBLISHED": {
+          "target": "idle",
+          "action": {
+            "type": "assign",
+            "params": {
+              "activeCalls": "append(context.activeCalls, context.currentCall)",
+              "pendingSignals": "[]",
+              "lastPublish": "now()"
+            }
+          }
+        },
+        "PUBLISH_FAILED": { "target": "idle", "action": { "type": "notify", "params": { "message": "Publish failed — signal saved locally" } } }
+      },
+      "timeout": { "after": "5m", "target": "idle" }
+    },
+
+    "measuring": {
+      "description": "Outcome arrived. Compare prediction to reality. Log hit or miss with equal weight.",
+      "on": {
+        "HIT": {
+          "target": "idle",
+          "action": { "type": "assign", "params": { "hitCount": "context.hitCount + 1" } }
+        },
+        "MISS": {
+          "target": "publishing_miss",
+          "action": { "type": "assign", "params": { "missCount": "context.missCount + 1" } }
+        }
+      },
+      "meta": {
+        "rule": "Misses and hits get identical analytical depth. A miss without a published post-mortem is a cover-up."
+      }
+    },
+
+    "publishing_miss": {
+      "description": "Publishing the miss report. What was predicted, what happened, why the model failed.",
+      "entry": {
+        "type": "log",
+        "params": { "message": "Publishing miss #${context.missCount}" }
+      },
+      "on": {
+        "MISS_PUBLISHED": { "target": "idle" }
+      },
+      "meta": {
+        "required_fields": ["original_prediction", "actual_outcome", "delta", "model_failure_reason", "updated_prior"]
+      }
+    }
+  }
+}
